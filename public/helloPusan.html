@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>HelloPusan</title>
+        <style>
+            /* body */
+            body {
+                font-family: "Lucida Console";
+                margin: 0px;
+                padding: 0px;
+            }
+            /* header */
+            header {
+                width: 100%;
+                height: 200px;
+                background-color: #354555;
+            }
+            header h1 {
+                padding-top: 40px;
+                color: white;
+                text-align: center;
+                font-size: 80px;
+            }
+            header h1:hover {
+                cursor: pointer;
+            }
+            header p {
+                color: white;
+                text-align: center;
+                font-size: 20px;
+            }
+            /* section */
+            section {
+                margin: 10px;
+                padding: 10px;
+                width: 45%;
+                height: 350px;
+                float: left;
+                border: solid 1px #2c1e1e;
+                box-sizing: border-box;
+            }
+            section h2 {
+                margin: 5px;
+                padding: 5px;
+                width: 100%;
+                height: 40px;
+                background-color: #354555;
+                color: white;
+                box-sizing: border-box;
+            }
+            section input[type="button"] {
+                background-color: #2c1e1e;
+                color: white;
+            }
+            section input[type="button"]:hover {
+                background-color: white;
+                color: #2c1e1e;
+            }
+            section li:hover {
+                text-decoration: underline;
+                cursor: pointer;
+            }
+            section table {
+                border: 1px solid black;
+            }
+            section th {
+                color: #354555;
+            }
+            /* a */
+            a, a:active {
+                color: black;
+            }
+            a:hover {
+                background-color: #2c1e1e;
+                color: white;
+            }
+            /* footer */
+            footer {
+                clear: both;
+                height: 50px;
+                background-color: #EAEAEA;
+                color: black;
+                padding: 20px;
+                font-size: 12px;
+            }
+        </style>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script>
+            $(document).ready(function(){
+                $("header h1").click(function(){
+                    location.reload();
+                });
+                /* 부산의 날씨 정보 출력 */
+                var xhr = new XMLHttpRequest();
+                xhr.withCredentials = true;
+                xhr.addEventListener("readystatechange", function() {
+                    if(this.readyState === 4) {
+                        console.log(this.responseText);
+
+                        var parsed = JSON.parse(this.responseText);
+                        var pty = 0; var sky = 0; var t1h = 0; var reh = 0; // 강수형태, 하늘상태, 기온, 습도
+
+                        for(i in parsed.response.body.items.item){
+                            var cur = parsed.response.body.items.item[i];
+                            if(pty==0 && cur["category"]=="PTY") pty = parseInt(cur["fcstValue"]);
+                            else if(sky==0 && cur["category"]=="SKY") sky = parseInt(cur["fcstValue"]);
+                            else if(t1h==0 && cur["category"]=="T1H") t1h = parseInt(cur["fcstValue"]);
+                            else if(reh==0 && cur["category"]=="REH") reh = parseInt(cur["fcstValue"]);
+                        }
+
+                        if(pty == 0) pty = "없음";
+                        else if(pty == 1) pty = "비";
+                        else if(pty == 2) pty = "비/눈";
+                        else if(pty == 3) pty = "눈";
+                        else if(pty == 4) pty = "소나기";
+
+                        if(sky == 1) sky = "맑음";
+                        else if(sky == 3) sky = "구름많음";
+                        else if(sky == 4) sky = "흐림";
+
+                        var str = "강수형태: " + pty + ", 하늘상태: " + sky + ", 기온: " + t1h + ", 습도: " + reh;
+                        $("header p").html(str);
+                    }
+                });
+                var url = "http://localhost:3000/weather";
+
+                var DATE = new Date();
+                var year = (DATE.getFullYear()).toString();
+                if(DATE.getMonth()+1 < 10) var month = "0" + (DATE.getMonth()+1).toString();
+                else var month = (DATE.getMonth()+1).toString();
+                if(DATE.getDate() < 10) var date = "0" + (DATE.getDate()).toString();
+                else var date = (DATE.getDate()).toString();
+                if(DATE.getHours()-1 < 10) var hours = "0" + (DATE.getHours()-1).toString();
+                else var hours = (DATE.getHours()-1).toString();
+                if(DATE.getMinutes() < 10) var minutes = "0" + (DATE.getMinutes()).toString();
+                else var minutes = (DATE.getMinutes()).toString();
+
+                var base_date = year + month + date;
+                var base_time = hours + minutes;
+                url += "?base_date=" + base_date + "&base_time=" + base_time;
+                xhr.open("GET", url);
+                xhr.send();
+
+                /* 부산의 조형물 목록 출력 */
+                var parsed1;
+                $("#btn1").click(function(){
+                    if($("#numOfRows1").val() == "") {
+                        alert("행 개수를 입력하세요."); $("#numOfRows1").focus(); return;
+                    }
+                    if($("#pageNo1").val() == "") {
+                        alert("페이지 번호를 입력하세요."); $("#pageNo1").focus(); return;
+                    }
+                    var numOfRows = parseInt( $("#numOfRows1").val() );
+                    var pageNo = parseInt( $("#pageNo1").val() );
+                    if(numOfRows<1 || numOfRows>10) {
+                        alert("항 개수는 1이상 10이하 입니다."); $("#numOfRows1").focus(); return;
+                    }
+                    if(pageNo < 1) {
+                        alert("페이지 번호는 1 이상 입니다."); $("#pageNo1").focus(); return;
+                    }
+                    xhr.addEventListener("readystatechange", function() {
+                        if(this.readyState === 4) {
+                            console.log(this.responseText);
+                            parsed1 = JSON.parse(this.responseText);
+                            
+                            $("#tbl1").hide();
+                            for(var i=0; i<10; i++) $("#li1_" + i).hide();
+                            for(i in parsed1.getPublicArtInfo.item){
+                                var cur = parsed1.getPublicArtInfo.item[i];
+                                $("#li1_" + i).html(cur["title"]);
+                                $("#li1_" + i).show();
+                            }
+                            $("#ul1").show();
+                            var height = (numOfRows * 25 + 100).toString();
+                            $("#s1").css({ "height":height });
+                        }
+                    });
+                    var url = "http://localhost:3000/publicArt";
+                    url += "?numOfRows=" + numOfRows + "&pageNo=" + pageNo;
+                    xhr.open("GET", url);
+                    xhr.send();
+                });
+                /* 부산의 식당 목록 출력 */
+                var parsed2;
+                $("#btn2").click(function(){
+                    if($("#numOfRows2").val() == "") {
+                        alert("행 개수를 입력하세요."); $("#numOfRows2").focus(); return;
+                    }
+                    if($("#pageNo2").val() == "") {
+                        alert("페이지 번호를 입력하세요."); $("#pageNo2").focus(); return;
+                    }
+                    var numOfRows = parseInt( $("#numOfRows2").val() );
+                    var pageNo = parseInt( $("#pageNo2").val() );
+                    if(numOfRows<1 || numOfRows>10) {
+                        alert("항 개수는 1이상 10이하 입니다."); $("#numOfRows2").focus(); return;
+                    }
+                    if(pageNo < 1) {
+                        alert("페이지 번호는 1 이상 입니다."); $("#pageNo2").focus(); return;
+                    }
+                    xhr.addEventListener("readystatechange", function() {
+                        if(this.readyState === 4) {
+                            console.log(this.responseText);
+                            parsed2 = JSON.parse(this.responseText);
+
+                            $("#tbl2").hide();
+                            for(var i=0; i<10; i++) $("#li2_" + i).hide();
+                            for(i in parsed2.getTblFnrstrnStusInfo.item){
+                                var cur = parsed2.getTblFnrstrnStusInfo.item[i];
+                                $("#li2_" + i).html(cur["menu"]);
+                                $("#li2_" + i).show();
+                            }
+                            $("#ul2").show();
+                            var height = (numOfRows * 25 + 100).toString();
+                            $("#s2").css({ "height":height });
+                        }
+                    });
+                    var url = "http://localhost:3000/restaurant";
+                    url += "?numOfRows=" + numOfRows + "&pageNo=" + pageNo;
+                    xhr.open("GET", url);
+                    xhr.send();
+                });
+                /* 조형물의 상세정보 출력 */
+                $("#ul1").hide(); $("#tbl1").hide();
+                $(".li1").click(function(){
+                    $("#ul1").hide();
+                    var cur;
+                    for(i in parsed1.getPublicArtInfo.item){
+                        cur = parsed1.getPublicArtInfo.item[i];
+                        if($(this).val() == cur["title"]) break;
+                    }
+                    var tbl = document.getElementById("tbl1");
+                    while(tbl.hasChildNodes()) tbl.removeChild(tbl.firstChild);
+                    for(i in cur){
+                        var tr = document.createElement("tr");
+                        var th = document.createElement("th");
+                        th.innerHTML = i;
+                        var td = document.createElement("td");
+                        td.innerHTML = cur[i];
+                        if(i == "addr1"){
+                            td.innerHTML = "<a href='https://map.kakao.com/link/search/"+cur[i]+"' target='_blank'>"+cur[i]+"</a>";
+                        }
+                        if(i == "addr2"){
+                            td.innerHTML = "<a href='https://map.kakao.com/link/search/"+cur[i]+"' target='_blank'>"+cur[i]+"</a>";
+                        }
+                        if(i == "positionName"){
+                            td.innerHTML = "<a href='https://map.kakao.com/link/search/"+cur[i]+"' target='_blank'>"+cur[i]+"</a>";
+                        }
+                        if(i == "imgSrc") td.innerHTML = "<img src='http://" + cur[i] + "' width='200px' height='200px'>";
+                        tr.appendChild(th);
+                        tr.appendChild(td);
+                        tbl.appendChild(tr);
+                    }
+                    $("#tbl1").show();
+                    $("#s1").css({ "height":"800px" });
+                });
+                /* 음식점의 상세정보 출력 */
+                $("#ul2").hide(); $("#tbl2").hide();
+                $(".li2").click(function(){
+                    $("#ul2").hide();
+                    var cur;
+                    for(i in parsed2.getTblFnrstrnStusInfo.item){
+                        cur = parsed2.getTblFnrstrnStusInfo.item[i];
+                        if($(this).val() == cur["menu"]) break;
+                    }
+                    var tbl = document.getElementById("tbl2");
+                    while(tbl.hasChildNodes()) tbl.removeChild(tbl.firstChild);
+                    for(i in cur){
+                        var tr = document.createElement("tr");
+                        var th = document.createElement("th");
+                        th.innerHTML = i;
+                        var td = document.createElement("td");
+                        td.innerHTML = cur[i];
+                        tr.appendChild(th);
+                        tr.appendChild(td);
+                        tbl.appendChild(tr);
+                    }
+                    $("#tbl2").show();
+                    $("#s2").css({ "height":"800px" });
+                });
+            });
+        </script>
+    </head>
+    <body>
+        <header>
+            <h1>Hello Pusan</h1>
+            <p></p>
+        </header>
+        <section id="s1">
+            <h2>부산의 자랑</h2>
+            <form name="form1">
+                <label for="numOfRows1">행 개수</label>
+                <input type="text" id="numOfRows1" name="numOfRows1">
+                <label for="pageNo1">페이지 번호</label>
+                <input type="text" id="pageNo1" name="pageNo1">
+                <input type="button" value="검색" id="btn1">
+            </form>
+            <div id="d1">
+                <ul id="ul1">
+                    <li class="li1" id="li1_0"></li> <li class="li1" id="li1_1"></li> 
+                    <li class="li1" id="li1_2"></li> <li class="li1" id="li1_3"></li> 
+                    <li class="li1" id="li1_4"></li> <li class="li1" id="li1_5"></li> 
+                    <li class="li1" id="li1_6"></li> <li class="li1" id="li1_7"></li> 
+                    <li class="li1" id="li1_8"></li> <li class="li1" id="li1_9"></li>
+                </ul>
+                <table id="tbl1">
+                    
+                </table>
+            </div>
+        </section>
+        <section id="s2">
+            <h2>부산의 먹거리</h2>
+            <form name="form2">
+                <label for="numOfRows2">행 개수</label>
+                <input type="text" id="numOfRows2" name="numOfRows2">
+                <label for="pageNo2">페이지 번호</label>
+                <input type="text" id="pageNo2" name="pageNo2">
+                <input type="button" value="검색" id=btn2>
+            </form>
+            <div id="d2">
+                <ul id="ul2">
+                    <li class="li2" id="li2_0"></li> <li class="li2" id="li2_1"></li> 
+                    <li class="li2" id="li2_2"></li> <li class="li2" id="li2_3"></li> 
+                    <li class="li2" id="li2_4"></li> <li class="li2" id="li2_5"></li> 
+                    <li class="li2" id="li2_6"></li> <li class="li2" id="li2_7"></li> 
+                    <li class="li2" id="li2_8"></li> <li class="li2" id="li2_9"></li>
+                </ul>
+                <table id="tbl2">
+                    
+                </table>
+            </div>
+        </section>
+        <footer>
+            &copy;최광진 Choi kwang-jin 경상남도 김해시 장유1동
+        </footer>
+    </body>
+</html>
